@@ -7,11 +7,9 @@
 
 #include <cstddef>
 
-namespace xlc {
-  namespace number {
+namespace xlc::number {
     // next power of 2
     std::size_t npo2(std::size_t);
-  }
 }
 
 #endif //XLC_NUMBER_UTILS_H

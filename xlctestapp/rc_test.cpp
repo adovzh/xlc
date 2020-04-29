@@ -24,6 +24,25 @@ int main()
         }
         std::cout << "Remote client open: " << std::boolalpha << client.isOpen() << std::endl;
 
+        Project project;
+        std::string projectName("InMemoryRepo");
+        std::future<bool> gp_future = client.get_project(project, projectName);
+        try {
+            gp_future.get();
+            std::cout << "Get project success: v" << project.majorVersion << '.' << project.minorVersion << std::endl;
+        } catch (const std::exception& e) {
+            std::cout << "Error getting project: " << e.what() << std::endl;
+        }
+
+        std::future<bool> amjv_future = client.advance_major_version(projectName);
+        try {
+            amjv_future.get();
+            client.get_project(project, projectName).get();
+            std::cout << "Get project success: v" << project.majorVersion << '.' << project.minorVersion << std::endl;
+        }catch (const std::exception& e) {
+            std::cout << "Error: " << e.what() << std::endl;
+        }
+
         std::future<bool> dc_future = client.disconnect();
         try {
             bool result = dc_future.get();

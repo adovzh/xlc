@@ -35,25 +35,35 @@ namespace xlc {
       [[nodiscard]] bool isOpen() const { return transport->isOpen(); }
       std::future<bool> connect();
       std::future<bool> disconnect();
+      std::future<bool> get_project(Project& project, std::string& name);
+      std::future<bool> advance_major_version(std::string& name);
   private:
       void consumer();
 
       template<typename Function, typename... Args>
       auto exec_function(Function&& func, Args&&... args)
       {
-          auto* c_ptr = new packed_command<std::remove_reference_t<Function>, Args...>(std::forward<Function>(func), std::forward<Args>(args)...);
+          using PC_RR = packed_command<std::remove_reference_t<Function>, Args...>;
+          auto* c_ptr = new PC_RR(std::forward<Function>(func), std::forward<Args>(args)...);
           auto fut = c_ptr->result();
           command_ptr c(c_ptr);
           queue.offer(c, 1000L);
           return fut;
       }
 
+      bool m_connect();
+      bool m_disconnect();
+
       friend bool connect_impl(remote_client*);
       friend bool disconnect_impl(remote_client*);
+      friend bool get_project_impl(remote_client*, Project&, std::string&);
+      friend bool advance_major_version_impl(remote_client*, std::string&);
   };
 
   bool connect_impl(remote_client*);
   bool disconnect_impl(remote_client*);
+  bool get_project_impl(remote_client*, Project&, std::string&);
+  bool advance_major_version_impl(remote_client*, std::string&);
 
   remote_client::remote_client():
     socket(new TSocket("localhost", 3333)), transport(new TBufferedTransport(socket)),
@@ -89,6 +99,31 @@ namespace xlc {
       return exec_function(disconnect_impl, this);
   }
 
+  std::future<bool> remote_client::get_project(Project &project, std::string &name)
+  {
+      return exec_function(get_project_impl, this, std::ref(project), std::ref(name));
+  }
+
+  std::future<bool> remote_client::advance_major_version(std::string& name)
+  {
+      return exec_function(advance_major_version_impl, this, std::ref(name));
+  }
+
+  bool remote_client::m_connect()
+  {
+      std::cout << "Connecting remote (member-function) client..." << std::endl;
+      transport->open();
+      client.ping();
+      return true;
+  }
+
+  bool remote_client::m_disconnect()
+  {
+      std::cout << "Disconnecting remote (member-function) client..." << std::endl;
+      transport->close();
+      return true;
+  }
+
   bool connect_impl(remote_client* rclient)
   {
       std::cout << "Connecting remote client..." << std::endl;
@@ -101,6 +136,18 @@ namespace xlc {
   {
       std::cout << "Disconnecting remote client..." << std::endl;
       rclient->transport->close();
+      return true;
+  }
+
+  bool get_project_impl(remote_client* rclient, Project& project, std::string& name)
+  {
+      rclient->client.getProject(project, name);
+      return true;
+  }
+
+  bool advance_major_version_impl(remote_client* rclient, std::string& name)
+  {
+      rclient->client.advanceMajorVersion(name);
       return true;
   }
 }
