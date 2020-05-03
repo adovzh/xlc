@@ -16,17 +16,6 @@ namespace xlc {
       virtual void run() = 0;
   };
 
-  namespace impl {
-    template<std::size_t... Args>
-    struct args {};
-
-    template<std::size_t N, std::size_t... Args>
-    struct args_list: args_list<N-1, N-1, Args...> {};
-
-    template<std::size_t... Args>
-    struct args_list<0, Args...>: args<Args...> {};
-  }
-
   template<typename Function, typename ... Args>
   class packed_command: public command {
       std::function<Function> fun;
@@ -39,7 +28,7 @@ namespace xlc {
   private:
       std::invoke_result_t<Function, Args...> execute(std::tuple<Args...>&);
       template<std::size_t... ArgsList>
-      std::invoke_result_t<Function, Args...> execute(std::tuple<Args...>&, impl::args<ArgsList...>);
+      std::invoke_result_t<Function, Args...> execute(std::tuple<Args...>&, std::index_sequence<ArgsList...>);
   };
 
   template<typename Function, typename... Args>
@@ -68,13 +57,13 @@ namespace xlc {
   std::invoke_result_t<Function, Args...>
   packed_command<Function, Args...>::execute(std::tuple<Args...>& args_tuple)
   {
-      return execute(args_tuple, impl::args_list<sizeof...(Args)>());
+    return execute(args_tuple, std::index_sequence_for<Args...>{});
   }
 
   template<typename Function, typename... Args>
   template<std::size_t... ArgsList>
   std::invoke_result_t<Function, Args...>
-  packed_command<Function, Args...>::execute(std::tuple<Args...>& args_tuple, impl::args<ArgsList...>)
+  packed_command<Function, Args...>::execute(std::tuple<Args...>& args_tuple, std::index_sequence<ArgsList...>)
   {
       return fun(std::get<ArgsList>(args_tuple)...);
   }
