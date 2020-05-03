@@ -52,11 +52,6 @@ namespace xlc {
           queue.offer(c, 1000L);
           return fut;
       }
-
-      bool connect_impl();
-      bool disconnect_impl();
-      bool get_project_impl(Project& project, std::string& name);
-      bool advance_major_version_impl(std::string& name);
   };
 
   remote_client::remote_client():
@@ -85,49 +80,37 @@ namespace xlc {
 
   std::future<bool> remote_client::connect()
   {
-      return exec_function(&remote_client::connect_impl, this);
+      return exec_function([this] {
+          std::cout << "Connecting remote (lambda function) client..." << std::endl;
+          transport->open();
+          client.ping();
+          return true;
+      });
   }
 
   std::future<bool> remote_client::disconnect()
   {
-      return exec_function(&remote_client::disconnect_impl, this);
+      return exec_function([this] {
+          std::cout << "Disconnecting remote (lambda function) client..." << std::endl;
+          transport->close();
+          return true;
+      });
   }
 
   std::future<bool> remote_client::get_project(Project &project, std::string &name)
   {
-      return exec_function(&remote_client::get_project_impl, this, std::ref(project), std::ref(name));
+      return exec_function([&] {
+          client.getProject(project, name);
+          return true;
+      });
   }
 
   std::future<bool> remote_client::advance_major_version(std::string& name)
   {
-      return exec_function(&remote_client::advance_major_version_impl, this, std::ref(name));
-  }
-
-  bool remote_client::connect_impl()
-  {
-      std::cout << "Connecting remote (member-function) client..." << std::endl;
-      transport->open();
-      client.ping();
-      return true;
-  }
-
-  bool remote_client::disconnect_impl()
-  {
-      std::cout << "Disconnecting remote (member-function) client..." << std::endl;
-      transport->close();
-      return true;
-  }
-
-  bool remote_client::get_project_impl(Project& project, std::string& name)
-  {
-      client.getProject(project, name);
-      return true;
-  }
-
-  bool remote_client::advance_major_version_impl(std::string& name)
-  {
-      client.advanceMajorVersion(name);
-      return true;
+      return exec_function([&] {
+          client.advanceMajorVersion(name);
+          return true;
+      });
   }
 }
 
