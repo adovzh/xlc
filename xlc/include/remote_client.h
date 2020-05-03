@@ -43,7 +43,9 @@ namespace xlc {
       template<typename Function, typename... Args>
       auto exec_function(Function&& func, Args&&... args)
       {
-          using PC_RR = packed_command<std::remove_reference_t<Function>, Args...>;
+          using PC_RR = packed_command<std::decay_t<Function>, std::decay_t<Args>...>;
+          using ReturnType = typename PC_RR::ReturnType;
+
           auto* c_ptr = new PC_RR(std::forward<Function>(func), std::forward<Args>(args)...);
           auto fut = c_ptr->result();
           command_ptr c(c_ptr);

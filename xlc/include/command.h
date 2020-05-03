@@ -18,22 +18,27 @@ namespace xlc {
 
   template<typename Function, typename ... Args>
   class packed_command: public command {
-      std::function<Function> fun;
-      std::tuple<Args...> args;
-      std::promise<std::invoke_result_t<Function, Args...>> promise;
+  public:
+      using ReturnType = std::invoke_result_t<Function, Args...>;
+  private:
+      std::tuple<Function, Args...> args;
+      std::promise<ReturnType> promise;
   public:
       explicit packed_command(Function&& f, Args&&... args);
       void run() override;
-      std::future<std::invoke_result_t<Function, Args...>> result();
+      std::future<ReturnType> result();
   private:
-      std::invoke_result_t<Function, Args...> execute(std::tuple<Args...>&);
-      template<std::size_t... ArgsList>
-      std::invoke_result_t<Function, Args...> execute(std::tuple<Args...>&, std::index_sequence<ArgsList...>);
+      ReturnType execute(std::tuple<Function, Args...>&);
+      template<typename... InvokeArgs, std::size_t... ArgsList>
+      ReturnType execute(std::tuple<InvokeArgs...>&, std::index_sequence<ArgsList...>);
   };
+
+  template<typename Function, typename ... Args>
+  using packed_command_t = typename packed_command<Function, Args...>::ReturnType;
 
   template<typename Function, typename... Args>
   packed_command<Function, Args...>::packed_command(Function&& f, Args&& ... args):
-          fun(std::forward<Function>(f)), args(std::make_tuple(std::forward<Args>(args)...)) {}
+          args(std::make_tuple(std::forward<Function>(f), std::forward<Args>(args)...)) {}
 
   template<typename Function, typename... Args>
   void packed_command<Function, Args...>::run()
@@ -47,25 +52,25 @@ namespace xlc {
   }
 
   template<typename Function, typename... Args>
-  std::future<std::invoke_result_t<Function, Args...>>
+  std::future<packed_command_t<Function, Args...>>
   packed_command<Function, Args...>::result()
   {
       return promise.get_future();
   }
 
   template<typename Function, typename... Args>
-  std::invoke_result_t<Function, Args...>
-  packed_command<Function, Args...>::execute(std::tuple<Args...>& args_tuple)
+  packed_command_t<Function, Args...>
+  packed_command<Function, Args...>::execute(std::tuple<Function, Args...>& args_tuple)
   {
-    return execute(args_tuple, std::index_sequence_for<Args...>{});
+    return execute(args_tuple, std::make_index_sequence<sizeof...(Args) + 1>{});
   }
 
   template<typename Function, typename... Args>
-  template<std::size_t... ArgsList>
-  std::invoke_result_t<Function, Args...>
-  packed_command<Function, Args...>::execute(std::tuple<Args...>& args_tuple, std::index_sequence<ArgsList...>)
+  template<typename... InvokeArgs, std::size_t... ArgsList>
+  packed_command_t<Function, Args...>
+  packed_command<Function, Args...>::execute(std::tuple<InvokeArgs...>& args_tuple, std::index_sequence<ArgsList...>)
   {
-      return fun(std::get<ArgsList>(args_tuple)...);
+      return std::invoke(std::move(std::get<ArgsList>(args_tuple))...);
   }
 }
 
