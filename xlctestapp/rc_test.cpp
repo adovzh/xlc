@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <remote_client.h>
+#include <imr_client.h>
 
 int main()
 {
@@ -12,7 +13,7 @@ int main()
     using namespace xlc;
 
     try {
-        remote_client client;
+        imr_client client("localhost", 3333);
         std::cout << "Remote client open: " << std::boolalpha << client.isOpen() << std::endl;
 
         std::future<bool> result_future = client.connect();

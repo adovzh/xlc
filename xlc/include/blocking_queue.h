@@ -41,7 +41,7 @@ namespace xlc {
           capacity_(number::npo2(capacity)),
           head_(0), tail_(0)
   {
-      buffer_ = new T[capacity];
+      buffer_ = new T[capacity_];
       mask = capacity_ - 1;
   }
 
