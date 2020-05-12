@@ -18,7 +18,7 @@ namespace xlc {
       InMemoryRepoClient client;
   public:
       imr_client(const std::string& host, int port) :
-        remote_client(std::shared_ptr<remote_transport>(new socket_transport("localhost", 3333))),
+        remote_client(std::shared_ptr<remote_transport>(new socket_transport("localhost", port))),
         client(std::make_shared<TBinaryProtocol>(dynamic_cast<socket_transport&>(*get_transport()).get_transport())) {}
       std::future<bool> get_project(Project& project, std::string& name);
       std::future<bool> advance_major_version(std::string& name);

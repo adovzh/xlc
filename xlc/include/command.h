@@ -21,10 +21,16 @@ namespace xlc {
   public:
       using ReturnType = std::invoke_result_t<Function, Args...>;
   private:
+      using this_type = packed_command<Function, Args...>;
+      // data members
       std::tuple<Function, Args...> args;
       std::promise<ReturnType> promise;
   public:
       explicit packed_command(Function&& f, Args&&... args);
+      packed_command(const this_type&) = delete;
+
+      this_type& operator=(const this_type&) = delete;
+
       void run() override;
       std::future<ReturnType> result();
   private:

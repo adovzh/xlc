@@ -26,7 +26,7 @@ namespace xlc {
       std::thread consumer_thread;
   public:
       explicit remote_client(std::shared_ptr<remote_transport> rt);
-      ~remote_client();
+      virtual ~remote_client();
       [[nodiscard]] bool isOpen() const { return transport->isOpen(); }
       std::future<bool> connect();
       std::future<bool> disconnect();
