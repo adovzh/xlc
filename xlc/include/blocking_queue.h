@@ -26,7 +26,8 @@ namespace xlc {
       [[nodiscard]] std::size_t capacity() const { return capacity_; }
 
       bool poll(T& elem, long timeout);
-      bool offer(T elem, long timeout);
+      bool offer(const T& elem, long timeout);
+      bool offer(T&& elem, long timeout);
   private:
       T* buffer_;
       std::size_t capacity_;
@@ -60,7 +61,7 @@ namespace xlc {
 
       if ((result = cv_head_.wait_for(head_lock, std::chrono::milliseconds(timeout),
               [this] { return head_ != tail_; }))) {
-          elem = buffer_[head_];
+          elem = std::move(buffer_[head_]);
           head_ = head_ + 1 & mask;
           cv_tail_.notify_one();
       }
@@ -69,7 +70,7 @@ namespace xlc {
   }
 
   template<typename T>
-  bool blocking_queue<T>::offer(T elem, long timeout)
+  bool blocking_queue<T>::offer(const T& elem, long timeout)
   {
       bool result;
       std::unique_lock<std::mutex> tail_lock(mx_tail_);
@@ -77,6 +78,22 @@ namespace xlc {
       if ((result = cv_tail_.wait_for(tail_lock, std::chrono::milliseconds(timeout),
               [this] { return tail_ != (head_ - 1 & mask); }))) {
           buffer_[tail_] = elem;
+          tail_ = tail_ + 1 & mask;
+          cv_head_.notify_one();
+      }
+
+      return result;
+  }
+
+  template<typename T>
+  bool blocking_queue<T>::offer(T&& elem, long timeout)
+  {
+      bool result;
+      std::unique_lock<std::mutex> tail_lock(mx_tail_);
+
+      if ((result = cv_tail_.wait_for(tail_lock, std::chrono::milliseconds(timeout),
+              [this] { return tail_ != (head_ - 1 & mask); }))) {
+          buffer_[tail_] = std::move(elem);
           tail_ = tail_ + 1 & mask;
           cv_head_.notify_one();
       }

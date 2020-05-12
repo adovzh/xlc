@@ -19,7 +19,7 @@
 namespace xlc {
 
   class remote_client {
-      using command_ptr = std::shared_ptr<command>;
+      using command_ptr = std::unique_ptr<command>;
   private:
       std::shared_ptr<remote_transport> transport;
       blocking_queue<command_ptr> queue;
@@ -39,10 +39,10 @@ namespace xlc {
           using Command = packed_command<std::decay_t<Function>, std::decay_t<Args>...>;
           using ReturnType = typename Command::ReturnType;
 
-          auto* c_ptr = new Command(std::forward<Function>(func), std::forward<Args>(args)...);
-          auto fut = c_ptr->result();
-          command_ptr c(c_ptr);
-          queue.offer(c, 1000L);
+          auto cmd = std::make_unique<Command>(std::forward<Function>(func), std::forward<Args>(args)...);
+          auto fut = cmd->result();
+          queue.offer(std::move(cmd), 1000L);
+          std::cout << "[exec_function]: " << cmd.get() << std::endl;
           return fut;
       }
   private:
